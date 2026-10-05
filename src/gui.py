@@ -28,8 +28,8 @@ class WcetApp(tk.Tk):
         self.fragment: list[Operation] = []
         self.processor_path = Path(DEFAULT_PROCESSOR)
         self.fragment_path = Path(DEFAULT_FRAGMENT)
-        self.processor_path_value = tk.StringVar(value=str(self.processor_path))
-        self.fragment_path_value = tk.StringVar(value=str(self.fragment_path))
+        self.processor_path_value = tk.StringVar(value="Файл не выбран")
+        self.fragment_path_value = tk.StringVar(value="Файл не выбран")
 
         self.parameter_values = {
             name: tk.StringVar(value="—")
@@ -68,13 +68,17 @@ class WcetApp(tk.Tk):
         files = ttk.LabelFrame(container, text="Входные файлы", padding=10)
         files.pack(fill="x", pady=(0, 12))
         ttk.Button(
-            files, text="Загрузить processor.json", command=self._select_processor
+            files,
+            text="Выбрать модель процессора",
+            command=self._select_processor,
         ).grid(row=0, column=0, padx=(0, 10), pady=3, sticky="w")
         ttk.Label(files, textvariable=self.processor_path_value).grid(
             row=0, column=1, sticky="w"
         )
         ttk.Button(
-            files, text="Загрузить fragment.json", command=self._select_fragment
+            files,
+            text="Выбрать фрагмент операций",
+            command=self._select_fragment,
         ).grid(row=1, column=0, padx=(0, 10), pady=3, sticky="w")
         ttk.Label(files, textvariable=self.fragment_path_value).grid(
             row=1, column=1, sticky="w"
@@ -153,6 +157,7 @@ class WcetApp(tk.Tk):
         try:
             self.model = load_processor(self.processor_path)
             self.fragment = load_fragment(self.fragment_path)
+            self._update_file_labels()
             self._refresh_view()
             self.calculate()
         except InputDataError as error:
@@ -172,7 +177,7 @@ class WcetApp(tk.Tk):
             return
         self.model = model
         self.processor_path = Path(selected)
-        self.processor_path_value.set(str(self.processor_path))
+        self._update_file_labels()
         self._refresh_view()
         self.calculate()
 
@@ -190,9 +195,23 @@ class WcetApp(tk.Tk):
             return
         self.fragment = fragment
         self.fragment_path = Path(selected)
-        self.fragment_path_value.set(str(self.fragment_path))
+        self._update_file_labels()
         self._refresh_view()
         self.calculate()
+
+    def _update_file_labels(self) -> None:
+        processor_text = (
+            f"Модель: {self.processor_path.name}"
+            if self.model is not None
+            else "Файл не выбран"
+        )
+        fragment_text = (
+            f"Фрагмент: {self.fragment_path.name}"
+            if self.fragment
+            else "Файл не выбран"
+        )
+        self.processor_path_value.set(processor_text)
+        self.fragment_path_value.set(fragment_text)
 
     def _refresh_view(self) -> None:
         if self.model is None:
