@@ -15,3 +15,15 @@ def worst_case(op: Operation, model: ProcessorModel) -> int:
     memory_penalty = op.memory_accesses * model.cache_miss_penalty
     branch_penalty = op.branches * model.branch_miss_penalty
     return model.base_cost + memory_penalty + branch_penalty
+
+
+def bcet(fragment: Sequence[Operation], model: ProcessorModel) -> int:
+    """Суммарное лучшее время фрагмента."""
+
+    return sum(best_case(operation, model) for operation in fragment)
+
+
+def wcet(fragment: Sequence[Operation], model: ProcessorModel) -> int:
+    """Суммарное худшее время фрагмента."""
+
+    return sum(worst_case(operation, model) for operation in fragment)
