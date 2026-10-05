@@ -21,8 +21,8 @@ class WcetApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Анализатор WCET шага ПИД-регулятора")
-        self.geometry("1140x800")
-        self.minsize(940, 700)
+        self.geometry("1140x900")
+        self.minsize(940, 900)
         self.configure(background="#f3f4f6")
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -48,6 +48,8 @@ class WcetApp(tk.Tk):
             for name in ("bcet", "wcet", "ratio", "memory", "branches")
         }
         self.status_value = tk.StringVar(value="Расчёт не выполнен")
+        self.sort_column: str | None = None
+        self.sort_reverse = False
 
         self._configure_style()
         self._build_layout()
@@ -71,7 +73,6 @@ class WcetApp(tk.Tk):
             font=("TkDefaultFont", 18, "bold"),
             foreground="#1f2a35",
         )
-        style.configure("Subtitle.TLabel", foreground="#65717c")
         style.configure(
             "Section.TLabelframe",
             background="#ffffff",
@@ -151,26 +152,17 @@ class WcetApp(tk.Tk):
         container = ttk.Frame(self, padding=(22, 18))
         container.grid(row=0, column=0, sticky="nsew")
         container.columnconfigure(0, weight=1)
-        container.rowconfigure(4, weight=1)
 
         ttk.Label(
             container,
             text="Оценка времени выполнения шага ПИД-регулятора",
             style="Title.TLabel",
-        ).grid(row=0, column=0, sticky="w")
-        ttk.Label(
-            container,
-            text=(
-                "Загрузите модель процессора и описание операций, "
-                "затем выполните расчёт."
-            ),
-            style="Subtitle.TLabel",
-        ).grid(row=1, column=0, sticky="w", pady=(3, 16))
+        ).grid(row=0, column=0, sticky="w", pady=(0, 16))
 
         files = ttk.LabelFrame(
             container, text="Входные файлы", padding=(14, 10), style="Section.TLabelframe"
         )
-        files.grid(row=2, column=0, sticky="ew", pady=(0, 12))
+        files.grid(row=1, column=0, sticky="ew", pady=(0, 12))
         files.columnconfigure(1, weight=1, minsize=190)
         files.columnconfigure(3, weight=1, minsize=200)
         ttk.Button(
@@ -202,7 +194,7 @@ class WcetApp(tk.Tk):
             padding=(14, 10),
             style="Section.TLabelframe",
         )
-        parameters.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+        parameters.grid(row=2, column=0, sticky="ew", pady=(0, 12))
         labels = {
             "base_cost": "Базовая стоимость",
             "cache_miss_penalty": "Штраф промаха кэша",
@@ -228,14 +220,19 @@ class WcetApp(tk.Tk):
             padding=(10, 8),
             style="Section.TLabelframe",
         )
-        operations.grid(row=4, column=0, sticky="nsew", pady=(0, 12))
+        operations.grid(row=3, column=0, sticky="ew", pady=(0, 12))
         operations.columnconfigure(0, weight=1)
-        operations.rowconfigure(0, weight=1)
         columns = ("name", "type", "memory", "branches", "bcet", "wcet")
         self.table = ttk.Treeview(
-            operations, columns=columns, show="headings", selectmode="browse"
+            operations,
+            columns=columns,
+            show="headings",
+            selectmode="browse",
+            height=4,
         )
-        headings = {
+        self.table.tag_configure("even", background="#ffffff")
+        self.table.tag_configure("odd", background="#f7f8fa")
+        self.table_headings = {
             "name": "Имя операции",
             "type": "Тип",
             "memory": "Память",
@@ -252,7 +249,11 @@ class WcetApp(tk.Tk):
             "wcet": 75,
         }
         for name in columns:
-            self.table.heading(name, text=headings[name])
+            self.table.heading(
+                name,
+                text=self.table_headings[name],
+                command=lambda column=name: self._sort_treeview(column),
+            )
             self.table.column(
                 name,
                 width=widths[name],
@@ -265,7 +266,7 @@ class WcetApp(tk.Tk):
 
         scrollbar = ttk.Scrollbar(operations, orient="vertical", command=self.table.yview)
         self.table.configure(yscrollcommand=scrollbar.set)
-        self.table.grid(row=0, column=0, sticky="nsew")
+        self.table.grid(row=0, column=0, sticky="ew")
         scrollbar.grid(row=0, column=1, sticky="ns", padx=(8, 0))
 
         results = ttk.LabelFrame(
@@ -274,7 +275,7 @@ class WcetApp(tk.Tk):
             padding=(14, 10),
             style="Section.TLabelframe",
         )
-        results.grid(row=5, column=0, sticky="ew")
+        results.grid(row=4, column=0, sticky="ew")
         result_labels = {
             "bcet": "BCET",
             "wcet": "WCET",
@@ -373,6 +374,12 @@ class WcetApp(tk.Tk):
         for name, value in self.parameter_values.items():
             value.set(str(getattr(self.model, name)))
         self.table.delete(*self.table.get_children())
+        self.sort_column = None
+        self.sort_reverse = False
+        for name, heading in self.table_headings.items():
+            self.table.heading(name, text=heading)
+        visible_rows = min(max(len(self.fragment), 4), 12)
+        self.table.configure(height=visible_rows)
         for operation in self.fragment:
             self.table.insert(
                 "",
@@ -386,6 +393,34 @@ class WcetApp(tk.Tk):
                     worst_case(operation, self.model),
                 ),
             )
+        self._apply_row_stripes()
+
+    def _apply_row_stripes(self) -> None:
+        for index, item in enumerate(self.table.get_children()):
+            self.table.item(item, tags=("even" if index % 2 == 0 else "odd",))
+
+    def _sort_treeview(self, column: str) -> None:
+        numeric_columns = {"memory", "branches", "bcet", "wcet"}
+        reverse = not self.sort_reverse if self.sort_column == column else False
+
+        def sort_key(item: str) -> int | str:
+            value = self.table.set(item, column)
+            return int(value) if column in numeric_columns else value.casefold()
+
+        items = sorted(
+            self.table.get_children(), key=sort_key, reverse=reverse
+        )
+        for index, item in enumerate(items):
+            self.table.move(item, "", index)
+
+        self.sort_column = column
+        self.sort_reverse = reverse
+        for name, heading in self.table_headings.items():
+            marker = ""
+            if name == column:
+                marker = " ↓" if reverse else " ↑"
+            self.table.heading(name, text=f"{heading}{marker}")
+        self._apply_row_stripes()
 
     def calculate(self) -> None:
         if self.model is None or not self.fragment:
