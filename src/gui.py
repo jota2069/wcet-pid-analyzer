@@ -1,7 +1,7 @@
 import math
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 from .calculations import (
     bcet,
@@ -28,6 +28,8 @@ class WcetApp(tk.Tk):
         self.fragment: list[Operation] = []
         self.processor_path = Path(DEFAULT_PROCESSOR)
         self.fragment_path = Path(DEFAULT_FRAGMENT)
+        self.processor_path_value = tk.StringVar(value=str(self.processor_path))
+        self.fragment_path_value = tk.StringVar(value=str(self.fragment_path))
 
         self.parameter_values = {
             name: tk.StringVar(value="—")
@@ -62,6 +64,21 @@ class WcetApp(tk.Tk):
             text="Оценка времени выполнения шага ПИД-регулятора",
             style="Heading.TLabel",
         ).pack(anchor="w", pady=(0, 12))
+
+        files = ttk.LabelFrame(container, text="Входные файлы", padding=10)
+        files.pack(fill="x", pady=(0, 12))
+        ttk.Button(
+            files, text="Загрузить processor.json", command=self._select_processor
+        ).grid(row=0, column=0, padx=(0, 10), pady=3, sticky="w")
+        ttk.Label(files, textvariable=self.processor_path_value).grid(
+            row=0, column=1, sticky="w"
+        )
+        ttk.Button(
+            files, text="Загрузить fragment.json", command=self._select_fragment
+        ).grid(row=1, column=0, padx=(0, 10), pady=3, sticky="w")
+        ttk.Label(files, textvariable=self.fragment_path_value).grid(
+            row=1, column=1, sticky="w"
+        )
 
         parameters = ttk.LabelFrame(container, text="Модель процессора", padding=10)
         parameters.pack(fill="x", pady=(0, 12))
@@ -140,6 +157,42 @@ class WcetApp(tk.Tk):
             self.calculate()
         except InputDataError as error:
             messagebox.showerror("Ошибка входных данных", str(error))
+
+    def _select_processor(self) -> None:
+        selected = filedialog.askopenfilename(
+            title="Выберите модель процессора",
+            filetypes=(("JSON-файлы", "*.json"), ("Все файлы", "*.*")),
+        )
+        if not selected:
+            return
+        try:
+            model = load_processor(selected)
+        except InputDataError as error:
+            messagebox.showerror("Ошибка входных данных", str(error))
+            return
+        self.model = model
+        self.processor_path = Path(selected)
+        self.processor_path_value.set(str(self.processor_path))
+        self._refresh_view()
+        self.calculate()
+
+    def _select_fragment(self) -> None:
+        selected = filedialog.askopenfilename(
+            title="Выберите описание фрагмента",
+            filetypes=(("JSON-файлы", "*.json"), ("Все файлы", "*.*")),
+        )
+        if not selected:
+            return
+        try:
+            fragment = load_fragment(selected)
+        except InputDataError as error:
+            messagebox.showerror("Ошибка входных данных", str(error))
+            return
+        self.fragment = fragment
+        self.fragment_path = Path(selected)
+        self.fragment_path_value.set(str(self.fragment_path))
+        self._refresh_view()
+        self.calculate()
 
     def _refresh_view(self) -> None:
         if self.model is None:
