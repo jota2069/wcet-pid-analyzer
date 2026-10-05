@@ -48,6 +48,8 @@ class WcetApp(tk.Tk):
             for name in ("bcet", "wcet", "ratio", "memory", "branches")
         }
         self.status_value = tk.StringVar(value="Расчёт не выполнен")
+        self.sort_column: str | None = None
+        self.sort_reverse = False
 
         self._configure_style()
         self._build_layout()
@@ -230,7 +232,7 @@ class WcetApp(tk.Tk):
         )
         self.table.tag_configure("even", background="#ffffff")
         self.table.tag_configure("odd", background="#f7f8fa")
-        headings = {
+        self.table_headings = {
             "name": "Имя операции",
             "type": "Тип",
             "memory": "Память",
@@ -247,7 +249,11 @@ class WcetApp(tk.Tk):
             "wcet": 75,
         }
         for name in columns:
-            self.table.heading(name, text=headings[name])
+            self.table.heading(
+                name,
+                text=self.table_headings[name],
+                command=lambda column=name: self._sort_treeview(column),
+            )
             self.table.column(
                 name,
                 width=widths[name],
@@ -368,6 +374,10 @@ class WcetApp(tk.Tk):
         for name, value in self.parameter_values.items():
             value.set(str(getattr(self.model, name)))
         self.table.delete(*self.table.get_children())
+        self.sort_column = None
+        self.sort_reverse = False
+        for name, heading in self.table_headings.items():
+            self.table.heading(name, text=heading)
         visible_rows = min(max(len(self.fragment), 4), 12)
         self.table.configure(height=visible_rows)
         for operation in self.fragment:
@@ -388,6 +398,29 @@ class WcetApp(tk.Tk):
     def _apply_row_stripes(self) -> None:
         for index, item in enumerate(self.table.get_children()):
             self.table.item(item, tags=("even" if index % 2 == 0 else "odd",))
+
+    def _sort_treeview(self, column: str) -> None:
+        numeric_columns = {"memory", "branches", "bcet", "wcet"}
+        reverse = not self.sort_reverse if self.sort_column == column else False
+
+        def sort_key(item: str) -> int | str:
+            value = self.table.set(item, column)
+            return int(value) if column in numeric_columns else value.casefold()
+
+        items = sorted(
+            self.table.get_children(), key=sort_key, reverse=reverse
+        )
+        for index, item in enumerate(items):
+            self.table.move(item, "", index)
+
+        self.sort_column = column
+        self.sort_reverse = reverse
+        for name, heading in self.table_headings.items():
+            marker = ""
+            if name == column:
+                marker = " ↓" if reverse else " ↑"
+            self.table.heading(name, text=f"{heading}{marker}")
+        self._apply_row_stripes()
 
     def calculate(self) -> None:
         if self.model is None or not self.fragment:
