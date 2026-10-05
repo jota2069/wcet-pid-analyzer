@@ -21,8 +21,11 @@ class WcetApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Анализатор WCET шага ПИД-регулятора")
-        self.geometry("1050x700")
-        self.minsize(900, 620)
+        self.geometry("1140x800")
+        self.minsize(940, 700)
+        self.configure(background="#f3f4f6")
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
 
         self.model: ProcessorModel | None = None
         self.fragment: list[Operation] = []
@@ -52,40 +55,154 @@ class WcetApp(tk.Tk):
 
     def _configure_style(self) -> None:
         style = ttk.Style(self)
-        style.configure("Treeview", rowheight=27)
-        style.configure("Heading.TLabel", font=("TkDefaultFont", 11, "bold"))
+        if "clam" in style.theme_names():
+            style.theme_use("clam")
+
+        style.configure(
+            ".",
+            font=("TkDefaultFont", 10),
+            background="#f3f4f6",
+            foreground="#26323d",
+        )
+        style.configure("TFrame", background="#f3f4f6")
+        style.configure("TLabel", background="#f3f4f6")
+        style.configure(
+            "Title.TLabel",
+            font=("TkDefaultFont", 18, "bold"),
+            foreground="#1f2a35",
+        )
+        style.configure("Subtitle.TLabel", foreground="#65717c")
+        style.configure(
+            "Section.TLabelframe",
+            background="#ffffff",
+            bordercolor="#d6dbe1",
+            borderwidth=1,
+            relief="solid",
+        )
+        style.configure(
+            "Section.TLabelframe.Label",
+            font=("TkDefaultFont", 10, "bold"),
+            background="#f3f4f6",
+            foreground="#34414d",
+        )
+        style.configure("Section.TFrame", background="#ffffff")
+        style.configure("Section.TLabel", background="#ffffff")
+        style.configure(
+            "Value.TLabel",
+            background="#ffffff",
+            font=("TkDefaultFont", 11, "bold"),
+            foreground="#26323d",
+        )
+        style.configure("File.TLabel", background="#ffffff", foreground="#53606c")
+        style.configure("TButton", padding=(12, 7))
+        style.configure(
+            "Accent.TButton",
+            padding=(18, 8),
+            font=("TkDefaultFont", 10, "bold"),
+            background="#4d6075",
+            foreground="#ffffff",
+            bordercolor="#4d6075",
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("active", "#405268"), ("pressed", "#35475b")],
+        )
+        style.configure(
+            "Treeview",
+            rowheight=30,
+            background="#ffffff",
+            fieldbackground="#ffffff",
+            borderwidth=0,
+        )
+        style.configure(
+            "Treeview.Heading",
+            font=("TkDefaultFont", 10, "bold"),
+            background="#e9edf1",
+            foreground="#34414d",
+            relief="flat",
+            padding=(6, 7),
+        )
+        style.map(
+            "Treeview",
+            background=[("selected", "#dce5ee")],
+            foreground=[("selected", "#1f2a35")],
+        )
+        style.map("Treeview.Heading", background=[("active", "#e1e6eb")])
+        style.configure(
+            "Deadline.TLabel",
+            background="#ffffff",
+            font=("TkDefaultFont", 10, "bold"),
+            foreground="#65717c",
+        )
+        style.configure(
+            "DeadlineGood.TLabel",
+            background="#ffffff",
+            font=("TkDefaultFont", 10, "bold"),
+            foreground="#27623a",
+        )
+        style.configure(
+            "DeadlineBad.TLabel",
+            background="#ffffff",
+            font=("TkDefaultFont", 10, "bold"),
+            foreground="#8a3434",
+        )
 
     def _build_layout(self) -> None:
-        container = ttk.Frame(self, padding=16)
-        container.pack(fill="both", expand=True)
+        container = ttk.Frame(self, padding=(22, 18))
+        container.grid(row=0, column=0, sticky="nsew")
+        container.columnconfigure(0, weight=1)
+        container.rowconfigure(4, weight=1)
 
         ttk.Label(
             container,
             text="Оценка времени выполнения шага ПИД-регулятора",
-            style="Heading.TLabel",
-        ).pack(anchor="w", pady=(0, 12))
+            style="Title.TLabel",
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            container,
+            text=(
+                "Загрузите модель процессора и описание операций, "
+                "затем выполните расчёт."
+            ),
+            style="Subtitle.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(3, 16))
 
-        files = ttk.LabelFrame(container, text="Входные файлы", padding=10)
-        files.pack(fill="x", pady=(0, 12))
+        files = ttk.LabelFrame(
+            container, text="Входные файлы", padding=(14, 10), style="Section.TLabelframe"
+        )
+        files.grid(row=2, column=0, sticky="ew", pady=(0, 12))
+        files.columnconfigure(1, weight=1, minsize=190)
+        files.columnconfigure(3, weight=1, minsize=200)
         ttk.Button(
             files,
             text="Выбрать модель процессора",
             command=self._select_processor,
-        ).grid(row=0, column=0, padx=(0, 10), pady=3, sticky="w")
-        ttk.Label(files, textvariable=self.processor_path_value).grid(
+            width=26,
+        ).grid(row=0, column=0, padx=(0, 14), sticky="w")
+        ttk.Label(
+            files, textvariable=self.processor_path_value, style="File.TLabel"
+        ).grid(
             row=0, column=1, sticky="w"
         )
         ttk.Button(
             files,
             text="Выбрать фрагмент операций",
             command=self._select_fragment,
-        ).grid(row=1, column=0, padx=(0, 10), pady=3, sticky="w")
-        ttk.Label(files, textvariable=self.fragment_path_value).grid(
-            row=1, column=1, sticky="w"
+            width=26,
+        ).grid(row=0, column=2, padx=(22, 14), sticky="w")
+        ttk.Label(
+            files, textvariable=self.fragment_path_value, style="File.TLabel"
+        ).grid(
+            row=0, column=3, sticky="w"
         )
 
-        parameters = ttk.LabelFrame(container, text="Модель процессора", padding=10)
-        parameters.pack(fill="x", pady=(0, 12))
+        parameters = ttk.LabelFrame(
+            container,
+            text="Модель процессора",
+            padding=(14, 10),
+            style="Section.TLabelframe",
+        )
+        parameters.grid(row=3, column=0, sticky="ew", pady=(0, 12))
         labels = {
             "base_cost": "Базовая стоимость",
             "cache_miss_penalty": "Штраф промаха кэша",
@@ -93,15 +210,31 @@ class WcetApp(tk.Tk):
             "deadline": "Дедлайн",
         }
         for column, (name, label) in enumerate(labels.items()):
-            block = ttk.Frame(parameters)
-            block.grid(row=0, column=column, padx=12, sticky="w")
-            ttk.Label(block, text=label).pack(anchor="w")
-            ttk.Label(block, textvariable=self.parameter_values[name]).pack(anchor="w")
+            parameters.columnconfigure(column, weight=1)
+            block = ttk.Frame(parameters, style="Section.TFrame")
+            block.grid(row=0, column=column, padx=(0, 20), sticky="ew")
+            ttk.Label(block, text=label, style="Section.TLabel").grid(
+                row=0, column=0, sticky="w"
+            )
+            ttk.Label(
+                block,
+                textvariable=self.parameter_values[name],
+                style="Value.TLabel",
+            ).grid(row=1, column=0, sticky="w", pady=(3, 0))
 
-        operations = ttk.LabelFrame(container, text="Операции", padding=10)
-        operations.pack(fill="both", expand=True, pady=(0, 12))
+        operations = ttk.LabelFrame(
+            container,
+            text="Операции",
+            padding=(10, 8),
+            style="Section.TLabelframe",
+        )
+        operations.grid(row=4, column=0, sticky="nsew", pady=(0, 12))
+        operations.columnconfigure(0, weight=1)
+        operations.rowconfigure(0, weight=1)
         columns = ("name", "type", "memory", "branches", "bcet", "wcet")
-        self.table = ttk.Treeview(operations, columns=columns, show="headings")
+        self.table = ttk.Treeview(
+            operations, columns=columns, show="headings", selectmode="browse"
+        )
         headings = {
             "name": "Имя операции",
             "type": "Тип",
@@ -111,26 +244,37 @@ class WcetApp(tk.Tk):
             "wcet": "WCET",
         }
         widths = {
-            "name": 310,
-            "type": 120,
+            "name": 360,
+            "type": 140,
             "memory": 85,
-            "branches": 90,
-            "bcet": 70,
-            "wcet": 70,
+            "branches": 115,
+            "bcet": 75,
+            "wcet": 75,
         }
         for name in columns:
             self.table.heading(name, text=headings[name])
-            self.table.column(name, width=widths[name], anchor="center")
-        self.table.column("name", anchor="w")
-        self.table.column("type", anchor="w")
+            self.table.column(
+                name,
+                width=widths[name],
+                minwidth=70,
+                anchor="center",
+                stretch=name in ("name", "type"),
+            )
+        self.table.column("name", minwidth=250, anchor="w")
+        self.table.column("type", minwidth=110, anchor="w")
 
         scrollbar = ttk.Scrollbar(operations, orient="vertical", command=self.table.yview)
         self.table.configure(yscrollcommand=scrollbar.set)
-        self.table.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        self.table.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns", padx=(8, 0))
 
-        results = ttk.LabelFrame(container, text="Результаты", padding=10)
-        results.pack(fill="x")
+        results = ttk.LabelFrame(
+            container,
+            text="Результаты",
+            padding=(14, 10),
+            style="Section.TLabelframe",
+        )
+        results.grid(row=5, column=0, sticky="ew")
         result_labels = {
             "bcet": "BCET",
             "wcet": "WCET",
@@ -139,19 +283,29 @@ class WcetApp(tk.Tk):
             "branches": "Вклад ветвлений",
         }
         for column, (name, label) in enumerate(result_labels.items()):
-            block = ttk.Frame(results)
-            block.grid(row=0, column=column, padx=10, sticky="w")
-            ttk.Label(block, text=label).pack(anchor="w")
-            ttk.Label(block, textvariable=self.result_values[name]).pack(anchor="w")
+            results.columnconfigure(column, weight=1)
+            block = ttk.Frame(results, style="Section.TFrame")
+            block.grid(row=0, column=column, padx=(0, 18), sticky="ew")
+            ttk.Label(block, text=label, style="Section.TLabel").grid(
+                row=0, column=0, sticky="w"
+            )
+            ttk.Label(
+                block, textvariable=self.result_values[name], style="Value.TLabel"
+            ).grid(row=1, column=0, sticky="w", pady=(3, 0))
 
-        self.status_label = tk.Label(
-            results, textvariable=self.status_value, font=("TkDefaultFont", 10, "bold")
+        self.status_label = ttk.Label(
+            results, textvariable=self.status_value, style="Deadline.TLabel"
         )
-        self.status_label.grid(row=1, column=0, columnspan=5, padx=10, pady=(12, 0))
+        self.status_label.grid(
+            row=1, column=0, columnspan=4, sticky="w", pady=(14, 0)
+        )
 
-        ttk.Button(container, text="Рассчитать", command=self.calculate).pack(
-            anchor="e", pady=(12, 0)
-        )
+        ttk.Button(
+            results,
+            text="Рассчитать",
+            command=self.calculate,
+            style="Accent.TButton",
+        ).grid(row=1, column=4, sticky="e", pady=(12, 0))
 
     def _load_defaults(self) -> None:
         try:
@@ -252,10 +406,10 @@ class WcetApp(tk.Tk):
 
         if meets_deadline(self.fragment, self.model):
             self.status_value.set("Дедлайн соблюдается")
-            self.status_label.configure(fg="#1b6e2d")
+            self.status_label.configure(style="DeadlineGood.TLabel")
         else:
             self.status_value.set("Дедлайн не соблюдается")
-            self.status_label.configure(fg="#a32626")
+            self.status_label.configure(style="DeadlineBad.TLabel")
 
 
 def main() -> None:
