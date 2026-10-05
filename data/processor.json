@@ -1,0 +1,6 @@
+{
+  "base_cost": 2,
+  "cache_miss_penalty": 12,
+  "branch_miss_penalty": 6,
+  "deadline": 100
+}

@@ -1,0 +1,58 @@
+{
+  "operations": [
+    {
+      "name": "Чтение уставки",
+      "type": "чтение",
+      "memory_accesses": 1,
+      "branches": 0
+    },
+    {
+      "name": "Чтение текущего значения",
+      "type": "чтение",
+      "memory_accesses": 1,
+      "branches": 0
+    },
+    {
+      "name": "Вычисление ошибки",
+      "type": "арифметика",
+      "memory_accesses": 0,
+      "branches": 0
+    },
+    {
+      "name": "Пропорциональная составляющая",
+      "type": "арифметика",
+      "memory_accesses": 0,
+      "branches": 0
+    },
+    {
+      "name": "Обновление интегральной суммы",
+      "type": "состояние",
+      "memory_accesses": 1,
+      "branches": 0
+    },
+    {
+      "name": "Дифференциальная составляющая",
+      "type": "состояние",
+      "memory_accesses": 1,
+      "branches": 0
+    },
+    {
+      "name": "Суммирование управляющего сигнала",
+      "type": "арифметика",
+      "memory_accesses": 0,
+      "branches": 0
+    },
+    {
+      "name": "Ограничение управляющего сигнала",
+      "type": "ветвление",
+      "memory_accesses": 0,
+      "branches": 2
+    },
+    {
+      "name": "Запись команды на привод",
+      "type": "запись",
+      "memory_accesses": 1,
+      "branches": 0
+    }
+  ]
+}
