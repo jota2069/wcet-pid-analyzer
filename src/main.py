@@ -1,5 +1,8 @@
+import argparse
 import math
+import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from .calculations import (
     bcet,
@@ -10,7 +13,13 @@ from .calculations import (
     wcet,
     worst_case,
 )
+from .loader import InputDataError, load_fragment, load_processor
 from .models import Operation, ProcessorModel
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_PROCESSOR = PROJECT_ROOT / "data" / "processor.json"
+DEFAULT_FRAGMENT = PROJECT_ROOT / "data" / "fragment.json"
 
 
 def _format_table(rows: list[list[str]]) -> str:
@@ -59,3 +68,39 @@ def build_report(fragment: Sequence[Operation], model: ProcessorModel) -> str:
         deadline_status,
     ]
     return f"{_format_table(rows)}\n\n" + "\n".join(summary)
+
+
+def create_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Оценка BCET и WCET одного шага ПИД-регулятора"
+    )
+    parser.add_argument(
+        "--processor",
+        type=Path,
+        default=DEFAULT_PROCESSOR,
+        help="путь к JSON-файлу модели процессора",
+    )
+    parser.add_argument(
+        "--fragment",
+        type=Path,
+        default=DEFAULT_FRAGMENT,
+        help="путь к JSON-файлу операций фрагмента",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = create_parser().parse_args(argv)
+    try:
+        model = load_processor(args.processor)
+        fragment = load_fragment(args.fragment)
+    except InputDataError as error:
+        print(f"Ошибка входных данных: {error}", file=sys.stderr)
+        return 1
+
+    print(build_report(fragment, model))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
