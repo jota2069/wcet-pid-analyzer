@@ -67,6 +67,16 @@ def test_nondeterminism_ratio_handles_zero_bcet() -> None:
     assert math.isinf(nondeterminism_ratio(fragment, model))
 
 
+def test_empty_fragment_has_zero_times_and_contributions() -> None:
+    model = make_model()
+
+    assert bcet([], model) == 0
+    assert wcet([], model) == 0
+    assert math.isinf(nondeterminism_ratio([], model))
+    assert source_breakdown([], model) == {"memory": 0, "branches": 0}
+    assert meets_deadline([], model) is True
+
+
 def test_source_breakdown_separates_memory_and_branches() -> None:
     fragment = [
         Operation("Чтение", "чтение", 2, 0),
